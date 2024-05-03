@@ -1,0 +1,231 @@
+Router 1 config for rip
+
+(copy paste below command in router CLI) 
+
+en
+conf t
+router rip
+network 192.168.1.0
+network 10.1.1.0
+
+router 2 for rip
+
+en
+conf t
+router rip
+network 10.1.1.0
+network 10.2.2.0
+
+
+router 3 for rip
+
+en
+conf t
+router rip
+network 10.2.2.0
+network 192.168.3.0
+
+
+Configure SSH On Router 2
+
+en
+conf t
+ip domain-name  shaikh.com
+username admin secret pwd
+line vty 0 4
+login local
+transport input ssh
+hostname R2
+crypto key generate rsa 
+How many bits in the modulus [512]: 1024
+% Generating 1024 bit RSA keys, keys will be non-exportable...[OK]
+
+ip ssh time-out 90
+ip ssh authentication-retries 2
+ip ssh version 2
+
+checking ssh enable on pc c
+
+ssh -l admin 10.2.2.2
+password:pwd
+
+login success ful
+
+
+CREATE THE FIREWALL ZONES ON R3 
+Enable the Security Technology package on R3
+R3>
+R3>en
+R3#show version
+
+Technology Package License Informa on for Module:'c1900'
+----------------------------------------------------------------
+Technology Technology-package Technology-package
+ Current Type Next reboot
+-----------------------------------------------------------------
+ipbase ipbasek9 Permanent ipbasek9 security None
+None None data None None None
+
+Configura on register is 0x2102
+R2#
+
+R3>en
+R3#conf t
+Enter configuration commands, one per line. End with CNTL/Z.
+R3(config)#license boot module c1900 technology-package securityk9
+
+ACCEPT? [yes/no]: yes
+% use 'write' command to make license boot config take effect on next boot
+R3(config)#: %IOS_LICENSE_IMAGE_APPLICATION-6-LICENSE_LEVEL: Module
+name = C1900 Next reboot level = securityk9 and License = securityk9
+R3(config)#ex
+R3#
+%SYS-5-CONFIG_I: Configured from console by console
+R3#reload
+System configuration has been modified. Save? [yes/no]:yes Building configuration...
+[OK]
+Proceed with reload? [confirm]
+-------------------------------------------
+
+
+
+Create a Firewall zones,class Map and ACL on Router 3
+
+enable
+configure terminal
+zone security IN-ZONE
+exit
+zone security OUT-ZONE
+exit
+access-list 101 permit ip 192.168.3.0 0.0.0.255 any
+class-map type inspect match-all IN-NET-CLASS-MAP
+match access-group 101
+exit
+policy-map type inspect IN-2-OUT-PMAP
+class type inspect IN-NET-CLASS-MAP
+inspect
+exit
+exit
+zone-pair security IN-2-OUT-ZPAIR source IN-ZONE destination OUT-ZONE
+service-policy type inspect IN-2-OUT-PMAP
+exit
+interface GigabitEthernet0/0
+zone-member security IN-ZONE
+ex
+interface serial0/0/0
+zone-member security OUT-ZONE
+exit
+exit 
+
+==================================================================================
+Objectives:
+ Verify connectivity among devices before firewall configuration.
+ Configure a zone-based policy (ZPF) firewall on R3.
+ Verify ZPF firewall functionality using ping, SSH, and a web browser.
+
+Step 4: Configure SSH login on router
+Execute command on all routers
+R(config)# ip domain-name ccnasecurity.com
+R(config)# username admin secret adminpa55
+R(config)# line vty 0 4
+R(config-line)# login local
+R(config-line)# crypto key generate rsa
+How many bits in the modulus [512]: 1024
+Step 5: Configure static routing on routers
+Execute command on all routers
+R(config)#ip route destination-network-address subnetmask next-hopdestination-address
+Part 2: Verify Basic Network Connectivity
+Step 1: Check connectivity from PCA to PCC
+PCA>ping 192.168.3.3
+(Successful)
+Step 2: Access R2 using SSH.
+PCC>ssh –l admin 10.2.2.2
+Password:adminpa55
+R2>exit
+Step 3: From PC-C, open a web browser to the PC-A server.
+Desktop -> Web Browser
+URL: http://192.168.1.3
+(Successful)
+Part 3: Create the Firewall Zones on R3
+Step 1: Verify that the Security Technology package
+R3# show version
+Step 2: Enable the Security Technology package
+R3(config)# license boot module c1900 technology-package securityk9
+Step 3: Save the running-config and reload the router
+R3#copy run start
+R3# reload
+Step 4: Verify that the Security Technology package
+R3# show version
+Step 5: Create an internal zone.
+R3(config)# zone security IN-ZONE
+R3(config-sec-zone)# exit
+Step 6: Create an external zone.
+R3(config)# zone security OUT-ZONE
+R3(config-sec-zone)# exit
+Part 4: Identify Traffic Using a Class-Map
+Step 1: Create an ACL that defines internal traffic.
+R3(config)# access-list 101 permit ip 192.168.3.0 0.0.0.255 any
+Step 2: Create a class map referencing the internal traffic ACL
+R3(config)# class-map type inspect match-all IN-NET-CLASS-MAP
+R3(config-cmap)# match access-group 101
+R3(config-cmap)# exit
+Part 5: Specify Firewall Policies
+Step 1: Create a policy map to determine what to do with matched traffic.
+R3(config)# policy-map type inspect IN-2-OUT-PMAP
+Step 2: Specify a class type of inspect and reference class map IN-NETCLASS-MAP.
+R3(config-pmap)# class type inspect IN-NET-CLASS-MAP
+Step 3: Specify the action of inspect for this policy map.
+R3(config-pmap-c)# inspect
+R3(config-pmap-c)# exit
+R3(config-pmap)# exit
+Part 6: Apply Firewall Policies
+Step 1: Create a pair of zones.
+R3(config)# zone-pair security IN-2-OUT-ZPAIR source IN-ZONE destination
+OUTZONE
+Step 2: Specify the policy map for handling the traffic between the two
+zones.
+R3(config-sec-zone-pair)# service-policy type inspect IN-2-OUT-PMAP
+R3(config-sec-zone-pair)# exit
+R3(config)#
+Step 3: Assign interfaces to the appropriate security zones.
+R3(config)# int g0/0
+R3(config-if)# zone-member security IN-ZONE
+R3(config-if)# exit
+R3(config)# int s0/1/0
+R3(config-if)# zone-member security OUT-ZONE
+R3(config-if)# exit
+Step 4: Copy the running configuration to the startup configuration.
+R3# copy run start
+R3# reload
+Part 7: Test Firewall Functionality from IN-ZONE to OUT
+ZONE
+Step 1: From internal PC-C, ping the external PC-A server.
+PCC>ping 192.168.1.3
+(Successful)
+Step 2: Access R2 using SSH.
+PCC>ssh –l admin 10.2.2.2
+Password:
+R2>
+Step 3: View established sessions
+R3# show policy-map type inspect zone-pair sessions
+Session 175216232 (192.168.3.3:1028)=>(10.2.2.2:22) tcp
+SIS_OPEN/TCP_ESTAB
+Step 4: From PC-C, exit the SSH session on R2 and close the command
+prompt window.
+R2>exit
+Step 5: From internal PC-C, open a web browser to the PC-A server web
+page.
+Desktop -> Web Browser
+URL: http://192.168.1.3
+(Successful)
+Step 6: View established sessions
+R3# show policy-map type inspect zone-pair sessions
+Session 565266624 (192.168.3.3:1031)=>(192.168.1.3:80) tcp
+SIS_OPEN/TCP_ESTAB
+Part 8: Test Firewall Functionality from OUT-ZONE to INZONE
+Step 1: From internal PC-A, ping the external PC-C server.
+PCA>ping 192.168.3.3
+(Unsuccessful – Request timed out)
+Step 2: From R2, ping PC-C.
+R2# ping 192.168.3.3
+(Unsuccessful – Request timed out)
