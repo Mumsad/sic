@@ -1,0 +1,10 @@
+pract 1: ospf md5 and ntp with syslog*
+pract 3a: ACL (permit HTTP and FTP)
+pract 9: Layer 2 VLAN security
+pract 10: IPsec VPN 
+pract 3b: ACL permit(with) remote LAN
+pract 8: Layer 2 security
+pract 6: Zone based firewall*
+pract 5: Configuring IPv6 ACL
+pract 4: IP ACLs to Mitigate(Prevent) Attack
+pract 7: IOS IPS
